@@ -232,4 +232,374 @@ jobs:
                       android:id="@+id/dark"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Modo
+                      android:text="Modo escuro" />
+
+                  <Button
+                      android:id="@+id/autoTheme"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Modo automático" />
+
+                  <Button
+                      android:id="@+id/grayscaleOn"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Ativar escala de cinza" />
+
+                  <Button
+                      android:id="@+id/grayscaleOff"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Desativar escala de cinza" />
+
+                  <Button
+                      android:id="@+id/invert"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Alternar inversão de cores" />
+
+                  <Button
+                      android:id="@+id/diagnose"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Diagnóstico de cores e overlays" />
+
+                  <Button
+                      android:id="@+id/restore"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Restaurar configuração salva" />
+
+                  <TextView
+                      android:id="@+id/output"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:paddingTop="20dp"
+                      android:paddingBottom="40dp"
+                      android:textIsSelectable="true"
+                      android:typeface="monospace" />
+
+              </LinearLayout>
+
+          </ScrollView>
+          EOF
+
+          cat > app/src/main/java/br/com/impulsedigital/colorcontrol/MainActivity.kt <<'EOF'
+          package br.com.impulsedigital.colorcontrol
+
+          import android.content.pm.PackageManager
+          import android.os.Bundle
+          import androidx.appcompat.app.AppCompatActivity
+          import br.com.impulsedigital.colorcontrol.databinding.ActivityMainBinding
+          import rikka.shizuku.Shizuku
+
+          class MainActivity : AppCompatActivity() {
+
+              private lateinit var b: ActivityMainBinding
+              private val permissionCode = 100
+
+              private val prefs by lazy {
+                  getSharedPreferences("color_control", MODE_PRIVATE)
+              }
+
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+
+                  b = ActivityMainBinding.inflate(layoutInflater)
+                  setContentView(b.root)
+
+                  refreshStatus()
+
+                  b.permission.setOnClickListener {
+                      requestShizuku()
+                  }
+
+                  b.backup.setOnClickListener {
+                      command(
+                          "settings get secure theme_customization_overlay_packages"
+                      ) { result ->
+
+                          prefs.edit()
+                              .putString("theme_backup", result.trim())
+                              .apply()
+
+                          b.output.text =
+                              "Configuração salva:\n\n$result"
+                      }
+                  }
+
+                  b.disableDynamic.setOnClickListener {
+                      execute(
+                          "settings put secure theme_customization_overlay_packages '{}'"
+                      )
+                  }
+
+                  b.wallpaperDynamic.setOnClickListener {
+                      execute(
+                          "settings delete secure theme_customization_overlay_packages"
+                      )
+                  }
+
+                  b.applyHex.setOnClickListener {
+                      applyHex()
+                  }
+
+                  b.light.setOnClickListener {
+                      execute("cmd uimode night no")
+                  }
+
+                  b.dark.setOnClickListener {
+                      execute("cmd uimode night yes")
+                  }
+
+                  b.autoTheme.setOnClickListener {
+                      execute("cmd uimode night auto")
+                  }
+
+                  b.grayscaleOn.setOnClickListener {
+                      execute(
+                          "settings put secure accessibility_display_daltonizer_enabled 1; " +
+                          "settings put secure accessibility_display_daltonizer 0"
+                      )
+                  }
+
+                  b.grayscaleOff.setOnClickListener {
+                      execute(
+                          "settings put secure accessibility_display_daltonizer_enabled 0"
+                      )
+                  }
+
+                  b.invert.setOnClickListener {
+                      execute(
+                          """
+                          CURRENT=$(settings get secure accessibility_display_inversion_enabled)
+
+                          if [ "$CURRENT" = "1" ]; then
+                              settings put secure accessibility_display_inversion_enabled 0
+                              echo "Inversão desativada"
+                          else
+                              settings put secure accessibility_display_inversion_enabled 1
+                              echo "Inversão ativada"
+                          fi
+                          """.trimIndent()
+                      )
+                  }
+
+                  b.diagnose.setOnClickListener {
+                      execute(
+                          """
+                          echo "===== COLOR CONTROL ====="
+
+                          echo
+                          echo "Modelo:"
+                          getprop ro.product.model
+
+                          echo
+                          echo "Fabricante:"
+                          getprop ro.product.manufacturer
+
+                          echo
+                          echo "Android:"
+                          getprop ro.build.version.release
+
+                          echo
+                          echo "SDK:"
+                          getprop ro.build.version.sdk
+
+                          echo
+                          echo "ROM:"
+                          getprop ro.build.display.id
+
+                          echo
+                          echo "Configuração Monet:"
+                          settings get secure theme_customization_overlay_packages
+
+                          echo
+                          echo "UI Mode:"
+                          cmd uimode
+
+                          echo
+                          echo "Overlays:"
+                          cmd overlay list | grep -Ei 'color|theme|monet|accent|systemui|miui' || true
+                          """.trimIndent()
+                      )
+                  }
+
+                  b.restore.setOnClickListener {
+
+                      val saved =
+                          prefs.getString(
+                              "theme_backup",
+                              null
+                          )
+
+                      if (saved == null) {
+
+                          b.output.text =
+                              "Nenhuma configuração salva."
+
+                      } else {
+
+                          val safe =
+                              saved.replace(
+                                  "'",
+                                  "'\\''"
+                              )
+
+                          execute(
+                              "settings put secure theme_customization_overlay_packages '$safe'"
+                          )
+                      }
+                  }
+              }
+
+              private fun requestShizuku() {
+
+                  if (!Shizuku.pingBinder()) {
+
+                      b.output.text =
+                          "Shizuku não está ativo. Inicie o Shizuku e tente novamente."
+
+                      return
+                  }
+
+                  if (
+                      Shizuku.checkSelfPermission() !=
+                      PackageManager.PERMISSION_GRANTED
+                  ) {
+
+                      Shizuku.requestPermission(
+                          permissionCode
+                      )
+
+                  } else {
+
+                      refreshStatus()
+
+                      b.output.text =
+                          "Shizuku já está autorizado."
+                  }
+              }
+
+              override fun onRequestPermissionsResult(
+                  requestCode: Int,
+                  permissions: Array<out String>,
+                  grantResults: IntArray
+              ) {
+
+                  super.onRequestPermissionsResult(
+                      requestCode,
+                      permissions,
+                      grantResults
+                  )
+
+                  refreshStatus()
+              }
+
+              private fun refreshStatus() {
+
+                  val running =
+                      try {
+                          Shizuku.pingBinder()
+                      } catch (_: Throwable) {
+                          false
+                      }
+
+                  if (!running) {
+
+                      b.status.text =
+                          "Shizuku: desconectado"
+
+                      return
+                  }
+
+                  val allowed =
+                      Shizuku.checkSelfPermission() ==
+                      PackageManager.PERMISSION_GRANTED
+
+                  b.status.text =
+                      if (allowed) {
+                          "Shizuku: conectado e autorizado ✓"
+                      } else {
+                          "Shizuku: conectado — autorização necessária"
+                      }
+              }
+
+              private fun applyHex() {
+
+                  val value =
+                      b.hex.text
+                          .toString()
+                          .trim()
+                          .removePrefix("#")
+
+                  if (
+                      !Regex("[0-9a-fA-F]{6}")
+                          .matches(value)
+                  ) {
+
+                      b.output.text =
+                          "HEX inválido. Exemplo: #FF6B00"
+
+                      return
+                  }
+
+                  val color =
+                      "FF${value.uppercase()}"
+
+                  val json =
+                      """{"android.theme.customization.system_palette":"$color","android.theme.customization.accent_color":"$color","android.theme.customization.color_source":"preset","android.theme.customization.color_both":"1"}"""
+
+                  execute(
+                      "settings put secure theme_customization_overlay_packages '$json'"
+                  )
+              }
+
+              private fun execute(cmd: String) {
+
+                  command(cmd) { result ->
+
+                      b.output.text =
+                          result.ifBlank {
+                              "Comando executado."
+                          }
+
+                      refreshStatus()
+                  }
+              }
+
+              private fun command(
+                  cmd: String,
+                  callback: (String) -> Unit
+              ) {
+
+                  if (!Shizuku.pingBinder()) {
+
+                      callback(
+                          "Shizuku não está ativo."
+                      )
+
+                      return
+                  }
+
+                  if (
+                      Shizuku.checkSelfPermission() !=
+                      PackageManager.PERMISSION_GRANTED
+                  ) {
+
+                      callback(
+                          "Autorize o Color Control no Shizuku."
+                      )
+
+                      return
+                  }
+
+                  Thread {
+
+                      try {
+
+                          val process =
+                              Shizuku.newProcess(
+                                  arrayOf(
+                                      "sh",
+  
