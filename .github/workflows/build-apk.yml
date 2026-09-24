@@ -20,9 +20,25 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # Não usamos android-actions/setup-android aqui.
+      # O runner do GitHub já possui o Android SDK.
+      - name: Configure Android SDK
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
 
+          yes | sdkmanager --licenses >/dev/null || true
+
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+          sdkmanager --list_installed
+
+      # O projeto Android inteiro é criado dentro do runner.
+      # Portanto, o repositório pode conter apenas este workflow.
       - name: Create Android project
         shell: bash
         run: |
@@ -41,13 +57,14 @@ jobs:
 
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
               repositories {
                   google()
                   mavenCentral()
               }
           }
 
-          rootProject.name = "ColorControl"
+          rootProject.name = "ColorControlShizuku"
           include(":app")
           EOF
 
@@ -76,8 +93,10 @@ jobs:
 
               defaultConfig {
                   applicationId = "br.com.impulsedigital.colorcontrol"
+
                   minSdk = 26
                   targetSdk = 35
+
                   versionCode = 1
                   versionName = "0.1.0"
               }
@@ -109,10 +128,12 @@ jobs:
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+              <uses-permission
+                  android:name="moe.shizuku.manager.permission.API_V23" />
 
               <application
                   android:allowBackup="true"
+                  android:supportsRtl="true"
                   android:label="Color Control"
                   android:theme="@style/Theme.ColorControl">
 
@@ -147,10 +168,13 @@ jobs:
           EOF
 
           cat > app/src/main/res/layout/activity_main.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+
           <ScrollView
               xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
-              android:layout_height="match_parent">
+              android:layout_height="match_parent"
+              android:fillViewport="true">
 
               <LinearLayout
                   android:layout_width="match_parent"
@@ -166,43 +190,58 @@ jobs:
                       android:textStyle="bold" />
 
                   <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Shizuku Color Engine"
+                      android:textSize="16sp"
+                      android:paddingBottom="8dp" />
+
+                  <TextView
                       android:id="@+id/status"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
+                      android:text="Shizuku: verificando..."
+                      android:textStyle="bold"
                       android:paddingTop="8dp"
-                      android:paddingBottom="16dp"
-                      android:text="Shizuku: verificando..." />
+                      android:paddingBottom="16dp" />
 
                   <Button
                       android:id="@+id/permission"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Autorizar Shizuku" />
+                      android:text="Conectar / autorizar Shizuku" />
+
+                  <Button
+                      android:id="@+id/backup"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Fazer backup das cores atuais" />
 
                   <Button
                       android:id="@+id/disableDynamic"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Desativar Dynamic Color" />
+                      android:text="Desativar Dynamic Color / Monet" />
 
                   <Button
                       android:id="@+id/wallpaperDynamic"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Cores do papel de parede" />
+                      android:text="Restaurar cores do papel de parede" />
 
                   <EditText
                       android:id="@+id/hex"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:hint="#FF6B00"
-                      android:inputType="text" />
+                      android:inputType="text"
+                      android:maxLines="1" />
 
                   <Button
                       android:id="@+id/applyHex"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Aplicar cor personalizada" />
+                      android:text="Aplicar cor HEX" />
 
                   <Button
                       android:id="@+id/light"
@@ -223,16 +262,41 @@ jobs:
                       android:text="Tema automático" />
 
                   <Button
+                      android:id="@+id/grayscale"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Ativar escala de cinza" />
+
+                  <Button
+                      android:id="@+id/disableGrayscale"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Desativar escala de cinza" />
+
+                  <Button
+                      android:id="@+id/invert"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Alternar inversão de cores" />
+
+                  <Button
                       android:id="@+id/diagnose"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Diagnóstico de cores e overlays" />
+                      android:text="Diagnóstico do sistema e overlays" />
+
+                  <Button
+                      android:id="@+id/restore"
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:text="Restaurar backup" />
 
                   <TextView
                       android:id="@+id/output"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:paddingTop="20dp"
+                      android:paddingBottom="30dp"
                       android:textIsSelectable="true"
                       android:typeface="monospace" />
 
@@ -256,10 +320,20 @@ jobs:
 
               private val permissionCode = 100
 
+              private val preferences by lazy {
+                  getSharedPreferences(
+                      "color_control",
+                      MODE_PRIVATE
+                  )
+              }
+
               override fun onCreate(savedInstanceState: Bundle?) {
+
                   super.onCreate(savedInstanceState)
 
-                  binding = ActivityMainBinding.inflate(layoutInflater)
+                  binding =
+                      ActivityMainBinding.inflate(layoutInflater)
+
                   setContentView(binding.root)
 
                   updateStatus()
@@ -268,238 +342,45 @@ jobs:
                       requestShizuku()
                   }
 
+                  binding.backup.setOnClickListener {
+                      backupCurrentTheme()
+                  }
+
                   binding.disableDynamic.setOnClickListener {
+
                       execute(
-                          "settings put secure theme_customization_overlay_packages '{}'"
+                          """
+                          settings put secure theme_customization_overlay_packages '{}'
+                          """.trimIndent()
                       )
                   }
 
                   binding.wallpaperDynamic.setOnClickListener {
+
                       execute(
-                          "settings delete secure theme_customization_overlay_packages"
+                          """
+                          settings delete secure theme_customization_overlay_packages
+                          """.trimIndent()
                       )
-                  }
-
-                  binding.light.setOnClickListener {
-                      execute("cmd uimode night no")
-                  }
-
-                  binding.dark.setOnClickListener {
-                      execute("cmd uimode night yes")
-                  }
-
-                  binding.autoTheme.setOnClickListener {
-                      execute("cmd uimode night auto")
                   }
 
                   binding.applyHex.setOnClickListener {
 
-                      val value =
-                          binding.hex.text.toString()
-                              .trim()
-                              .removePrefix("#")
+                      applyCustomColor()
+                  }
 
-                      if (!Regex("[0-9A-Fa-f]{6}").matches(value)) {
-
-                          binding.output.text =
-                              "Cor inválida. Exemplo: #FF6B00"
-
-                          return@setOnClickListener
-                      }
-
-                      val color =
-                          "FF${value.uppercase()}"
-
-                      val json =
-                          """{"android.theme.customization.system_palette":"$color","android.theme.customization.accent_color":"$color","android.theme.customization.color_source":"preset"}"""
+                  binding.light.setOnClickListener {
 
                       execute(
-                          "settings put secure theme_customization_overlay_packages '$json'"
+                          "cmd uimode night no"
                       )
                   }
 
-                  binding.diagnose.setOnClickListener {
+                  binding.dark.setOnClickListener {
 
                       execute(
-                          """
-                          echo "===== COLOR CONTROL ====="
-                          echo
-                          echo "DEVICE:"
-                          getprop ro.product.model
-                          echo
-                          echo "ANDROID:"
-                          getprop ro.build.version.release
-                          echo
-                          echo "SDK:"
-                          getprop ro.build.version.sdk
-                          echo
-                          echo "===== THEME CONFIG ====="
-                          settings get secure theme_customization_overlay_packages
-                          echo
-                          echo "===== OVERLAYS ====="
-                          cmd overlay list | grep -Ei 'color|theme|monet|accent|systemui'
-                          """.trimIndent()
+                          "cmd uimode night yes"
                       )
                   }
-              }
 
-              private fun requestShizuku() {
-
-                  if (!Shizuku.pingBinder()) {
-
-                      binding.output.text =
-                          "Shizuku não está ativo. Abra o aplicativo Shizuku e inicie o serviço."
-
-                      return
-                  }
-
-                  if (
-                      Shizuku.checkSelfPermission() !=
-                      PackageManager.PERMISSION_GRANTED
-                  ) {
-
-                      Shizuku.requestPermission(permissionCode)
-
-                  } else {
-
-                      updateStatus()
-                  }
-              }
-
-              override fun onRequestPermissionsResult(
-                  requestCode: Int,
-                  permissions: Array<out String>,
-                  grantResults: IntArray
-              ) {
-
-                  super.onRequestPermissionsResult(
-                      requestCode,
-                      permissions,
-                      grantResults
-                  )
-
-                  updateStatus()
-              }
-
-              private fun updateStatus() {
-
-                  val running =
-                      try {
-                          Shizuku.pingBinder()
-                      } catch (_: Throwable) {
-                          false
-                      }
-
-                  if (!running) {
-
-                      binding.status.text =
-                          "Shizuku: não conectado"
-
-                      return
-                  }
-
-                  val permission =
-                      Shizuku.checkSelfPermission() ==
-                      PackageManager.PERMISSION_GRANTED
-
-                  binding.status.text =
-                      if (permission)
-                          "Shizuku: conectado ✓"
-                      else
-                          "Shizuku: aguardando autorização"
-              }
-
-              private fun execute(command: String) {
-
-                  if (!Shizuku.pingBinder()) {
-
-                      binding.output.text =
-                          "Shizuku não está ativo."
-
-                      return
-                  }
-
-                  if (
-                      Shizuku.checkSelfPermission() !=
-                      PackageManager.PERMISSION_GRANTED
-                  ) {
-
-                      binding.output.text =
-                          "Autorize o aplicativo no Shizuku primeiro."
-
-                      return
-                  }
-
-                  Thread {
-
-                      try {
-
-                          val process =
-                              Shizuku.newProcess(
-                                  arrayOf(
-                                      "sh",
-                                      "-c",
-                                      command
-                                  ),
-                                  null,
-                                  null
-                              )
-
-                          val output =
-                              process.inputStream
-                                  .bufferedReader()
-                                  .readText()
-
-                          val error =
-                              process.errorStream
-                                  .bufferedReader()
-                                  .readText()
-
-                          process.waitFor()
-
-                          runOnUiThread {
-
-                              binding.output.text =
-                                  if (error.isBlank())
-                                      output.ifBlank {
-                                          "Comando executado."
-                                      }
-                                  else
-                                      "$output\n$error"
-                          }
-
-                      } catch (error: Throwable) {
-
-                          runOnUiThread {
-
-                              binding.output.text =
-                                  "Erro: ${error.message}"
-                          }
-                      }
-
-                  }.start()
-              }
-          }
-          EOF
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-
-      - name: Compile APK
-        run: |
-          gradle :app:assembleDebug --stacktrace
-
-      - name: Prepare APK
-        run: |
-          mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk \
-             release/Color-Control-Shizuku-0.1.0.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Color-Control-Shizuku-APK
-          path: release/Color-Control-Shizuku-0.1.0.apk
-          if-no-files-found: error
+                  binding.autoTheme.set
