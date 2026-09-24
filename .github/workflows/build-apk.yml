@@ -8,60 +8,22 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Configure Android SDK
+      - name: Criar projeto Android
         shell: bash
         run: |
-          set -e
-
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-
-          if [ ! -x "$SDKMANAGER" ]; then
-            SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" \
-              -type f \
-              -name sdkmanager \
-              2>/dev/null | head -n 1)
-          fi
-
-          echo "sdkmanager encontrado em: $SDKMANAGER"
-
-          if [ -z "$SDKMANAGER" ] || [ ! -x "$SDKMANAGER" ]; then
-            echo "ERRO: sdkmanager não encontrado."
-            find "$ANDROID_HOME" \
-              -maxdepth 5 \
-              -type f \
-              -name sdkmanager \
-              -print || true
-            exit 1
-          fi
-
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-
-          "$SDKMANAGER" \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
-          echo "Android SDK configurado."
-
-      - name: Create Android project
-        shell: bash
-        run: |
-          set -e
+          set -euo pipefail
 
           mkdir -p app/src/main/java/br/com/impulsedigital/colorcontrol
           mkdir -p app/src/main/res/layout
@@ -78,14 +40,13 @@ jobs:
 
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-
               repositories {
                   google()
                   mavenCentral()
               }
           }
 
-          rootProject.name = "ColorControlShizuku"
+          rootProject.name = "ColorControl"
           include(":app")
           EOF
 
@@ -138,22 +99,21 @@ jobs:
               implementation("androidx.core:core-ktx:1.15.0")
               implementation("androidx.appcompat:appcompat:1.7.0")
               implementation("com.google.android.material:material:1.12.0")
-
               implementation("dev.rikka.shizuku:api:13.1.5")
               implementation("dev.rikka.shizuku:provider:13.1.5")
           }
           EOF
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission
-                  android:name="moe.shizuku.manager.permission.API_V23" />
+              <uses-permission android:name="moe.shizuku.manager.permission.API_V23"/>
 
               <application
                   android:allowBackup="true"
-                  android:supportsRtl="true"
                   android:label="Color Control"
+                  android:supportsRtl="true"
                   android:theme="@style/Theme.ColorControl">
 
                   <activity
@@ -161,28 +121,22 @@ jobs:
                       android:exported="true">
 
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
 
                   </activity>
 
               </application>
-
           </manifest>
           EOF
 
           cat > app/src/main/res/values/styles.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
           <resources>
-
               <style
                   name="Theme.ColorControl"
-                  parent="Theme.Material3.DayNight.NoActionBar">
-
-                  <item name="android:fontFamily">sans</item>
-
-              </style>
-
+                  parent="Theme.Material3.DayNight.NoActionBar"/>
           </resources>
           EOF
 
@@ -202,18 +156,18 @@ jobs:
                   android:padding="20dp">
 
                   <TextView
-                      android:layout_width="wrap_content"
+                      android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:text="Color Control"
                       android:textSize="30sp"
-                      android:textStyle="bold" />
+                      android:textStyle="bold"/>
 
                   <TextView
-                      android:layout_width="wrap_content"
+                      android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Shizuku Color Engine"
-                      android:textSize="16sp"
-                      android:paddingBottom="8dp" />
+                      android:text="Controle avançado de cores via Shizuku"
+                      android:textSize="15sp"
+                      android:paddingBottom="16dp"/>
 
                   <TextView
                       android:id="@+id/status"
@@ -221,32 +175,31 @@ jobs:
                       android:layout_height="wrap_content"
                       android:text="Shizuku: verificando..."
                       android:textStyle="bold"
-                      android:paddingTop="8dp"
-                      android:paddingBottom="16dp" />
+                      android:paddingBottom="16dp"/>
 
                   <Button
                       android:id="@+id/permission"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Conectar / autorizar Shizuku" />
+                      android:text="Autorizar Shizuku"/>
 
                   <Button
                       android:id="@+id/backup"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Fazer backup das cores atuais" />
+                      android:text="Salvar configuração atual"/>
 
                   <Button
                       android:id="@+id/disableDynamic"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Desativar Dynamic Color / Monet" />
+                      android:text="Desativar Dynamic Color / Monet"/>
 
                   <Button
                       android:id="@+id/wallpaperDynamic"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Restaurar cores do papel de parede" />
+                      android:text="Restaurar cores do wallpaper"/>
 
                   <EditText
                       android:id="@+id/hex"
@@ -254,291 +207,27 @@ jobs:
                       android:layout_height="wrap_content"
                       android:hint="#FF6B00"
                       android:inputType="text"
-                      android:maxLines="1" />
+                      android:maxLines="1"/>
 
                   <Button
                       android:id="@+id/applyHex"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Aplicar cor HEX" />
+                      android:text="Aplicar cor HEX"/>
 
                   <Button
                       android:id="@+id/light"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Tema claro" />
+                      android:text="Modo claro"/>
 
                   <Button
                       android:id="@+id/dark"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Tema escuro" />
+                      android:text="Modo escuro"/>
 
                   <Button
                       android:id="@+id/autoTheme"
                       android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="Tema automático" />
-
-                  <Button
-                      android:id="@+id/grayscale"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="Ativar escala de cinza" />
-
-                  <Button
-                      android:id="@+id/disableGrayscale"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="Desativar escala de cinza" />
-
-                  <Button
-                      android:id="@+id/invert"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="Alternar inversão de cores" />
-
-                  <Button
-                      android:id="@+id/diagnose"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="Diagnóstico do sistema e overlays" />
-
-                  <Button
-                      android:id="@+id/restore"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:text="Restaurar backup" />
-
-                  <TextView
-                      android:id="@+id/output"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:paddingTop="20dp"
-                      android:paddingBottom="30dp"
-                      android:textIsSelectable="true"
-                      android:typeface="monospace" />
-
-              </LinearLayout>
-
-          </ScrollView>
-          EOF
-
-          cat > app/src/main/java/br/com/impulsedigital/colorcontrol/MainActivity.kt <<'EOF'
-          package br.com.impulsedigital.colorcontrol
-
-          import android.content.pm.PackageManager
-          import android.os.Bundle
-          import androidx.appcompat.app.AppCompatActivity
-          import br.com.impulsedigital.colorcontrol.databinding.ActivityMainBinding
-          import rikka.shizuku.Shizuku
-
-          class MainActivity : AppCompatActivity() {
-
-              private lateinit var binding: ActivityMainBinding
-
-              private val permissionCode = 100
-
-              private val preferences by lazy {
-                  getSharedPreferences("color_control", MODE_PRIVATE)
-              }
-
-              override fun onCreate(savedInstanceState: Bundle?) {
-
-                  super.onCreate(savedInstanceState)
-
-                  binding =
-                      ActivityMainBinding.inflate(layoutInflater)
-
-                  setContentView(binding.root)
-
-                  updateStatus()
-
-                  binding.permission.setOnClickListener {
-                      requestShizuku()
-                  }
-
-                  binding.backup.setOnClickListener {
-                      backupCurrentTheme()
-                  }
-
-                  binding.disableDynamic.setOnClickListener {
-
-                      execute(
-                          "settings put secure theme_customization_overlay_packages '{}'"
-                      )
-                  }
-
-                  binding.wallpaperDynamic.setOnClickListener {
-
-                      execute(
-                          "settings delete secure theme_customization_overlay_packages"
-                      )
-                  }
-
-                  binding.applyHex.setOnClickListener {
-                      applyCustomColor()
-                  }
-
-                  binding.light.setOnClickListener {
-                      execute("cmd uimode night no")
-                  }
-
-                  binding.dark.setOnClickListener {
-                      execute("cmd uimode night yes")
-                  }
-
-                  binding.autoTheme.setOnClickListener {
-                      execute("cmd uimode night auto")
-                  }
-
-                  binding.grayscale.setOnClickListener {
-
-                      execute(
-                          """
-                          settings put secure accessibility_display_daltonizer_enabled 1
-                          settings put secure accessibility_display_daltonizer 0
-                          """.trimIndent()
-                      )
-                  }
-
-                  binding.disableGrayscale.setOnClickListener {
-
-                      execute(
-                          "settings put secure accessibility_display_daltonizer_enabled 0"
-                      )
-                  }
-
-                  binding.invert.setOnClickListener {
-
-                      execute(
-                          """
-                          CURRENT=$(settings get secure accessibility_display_inversion_enabled)
-
-                          if [ "$CURRENT" = "1" ]; then
-                              settings put secure accessibility_display_inversion_enabled 0
-                              echo "Inversão desativada"
-                          else
-                              settings put secure accessibility_display_inversion_enabled 1
-                              echo "Inversão ativada"
-                          fi
-                          """.trimIndent()
-                      )
-                  }
-
-                  binding.diagnose.setOnClickListener {
-
-                      execute(
-                          """
-                          echo "=============================="
-                          echo " COLOR CONTROL DIAGNOSTIC"
-                          echo "=============================="
-
-                          echo
-                          echo "DEVICE:"
-                          getprop ro.product.model
-
-                          echo
-                          echo "MANUFACTURER:"
-                          getprop ro.product.manufacturer
-
-                          echo
-                          echo "ANDROID:"
-                          getprop ro.build.version.release
-
-                          echo
-                          echo "SDK:"
-                          getprop ro.build.version.sdk
-
-                          echo
-                          echo "ROM:"
-                          getprop ro.build.display.id
-
-                          echo
-                          echo "THEME CONFIGURATION:"
-                          settings get secure theme_customization_overlay_packages
-
-                          echo
-                          echo "UI MODE:"
-                          cmd uimode
-
-                          echo
-                          echo "COLOR/THEME OVERLAYS:"
-                          cmd overlay list | grep -Ei 'color|theme|monet|accent|systemui|miui'
-
-                          echo
-                          echo "=============================="
-                          """.trimIndent()
-                      )
-                  }
-
-                  binding.restore.setOnClickListener {
-                      restoreBackup()
-                  }
-              }
-
-              private fun requestShizuku() {
-
-                  if (!Shizuku.pingBinder()) {
-
-                      binding.output.text =
-                          "Shizuku não está ativo.\n\nAbra o Shizuku, inicie o serviço e volte ao Color Control."
-
-                      return
-                  }
-
-                  if (
-                      Shizuku.checkSelfPermission() !=
-                      PackageManager.PERMISSION_GRANTED
-                  ) {
-
-                      Shizuku.requestPermission(permissionCode)
-
-                  } else {
-
-                      updateStatus()
-
-                      binding.output.text =
-                          "Shizuku já está autorizado."
-                  }
-              }
-
-              override fun onRequestPermissionsResult(
-                  requestCode: Int,
-                  permissions: Array<out String>,
-                  grantResults: IntArray
-              ) {
-
-                  super.onRequestPermissionsResult(
-                      requestCode,
-                      permissions,
-                      grantResults
-                  )
-
-                  updateStatus()
-              }
-
-              private fun updateStatus() {
-
-                  val running =
-                      try {
-                          Shizuku.pingBinder()
-                      } catch (_: Throwable) {
-                          false
-                      }
-
-                  if (!running) {
-
-                      binding.status.text =
-                          "Shizuku: não conectado"
-
-                      return
-                  }
-
-                  val permission =
-                      Shizuku.checkSelfPermission() ==
-                      PackageManager.PERMISSION_GRANTED
-
-                  binding.status.text =
-                      if (permission) {
-                          "Shizuku: conectado e
+                      android:layout_height="
