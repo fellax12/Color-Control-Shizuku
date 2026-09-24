@@ -23,7 +23,7 @@ jobs:
       - name: Criar projeto Android
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
 
           mkdir -p app/src/main/java/br/com/impulsedigital/colorcontrol
           mkdir -p app/src/main/res/layout
@@ -99,6 +99,7 @@ jobs:
               implementation("androidx.core:core-ktx:1.15.0")
               implementation("androidx.appcompat:appcompat:1.7.0")
               implementation("com.google.android.material:material:1.12.0")
+
               implementation("dev.rikka.shizuku:api:13.1.5")
               implementation("dev.rikka.shizuku:provider:13.1.5")
           }
@@ -106,14 +107,16 @@ jobs:
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission android:name="moe.shizuku.manager.permission.API_V23"/>
+              <uses-permission
+                  android:name="moe.shizuku.manager.permission.API_V23" />
 
               <application
                   android:allowBackup="true"
-                  android:label="Color Control"
                   android:supportsRtl="true"
+                  android:label="Color Control"
                   android:theme="@style/Theme.ColorControl">
 
                   <activity
@@ -121,22 +124,26 @@ jobs:
                       android:exported="true">
 
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
 
                   </activity>
 
               </application>
+
           </manifest>
           EOF
 
           cat > app/src/main/res/values/styles.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+
           <resources>
+
               <style
                   name="Theme.ColorControl"
-                  parent="Theme.Material3.DayNight.NoActionBar"/>
+                  parent="Theme.Material3.DayNight.NoActionBar" />
+
           </resources>
           EOF
 
@@ -160,14 +167,14 @@ jobs:
                       android:layout_height="wrap_content"
                       android:text="Color Control"
                       android:textSize="30sp"
-                      android:textStyle="bold"/>
+                      android:textStyle="bold" />
 
                   <TextView
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:text="Controle avançado de cores via Shizuku"
                       android:textSize="15sp"
-                      android:paddingBottom="16dp"/>
+                      android:paddingBottom="16dp" />
 
                   <TextView
                       android:id="@+id/status"
@@ -175,31 +182,31 @@ jobs:
                       android:layout_height="wrap_content"
                       android:text="Shizuku: verificando..."
                       android:textStyle="bold"
-                      android:paddingBottom="16dp"/>
+                      android:paddingBottom="16dp" />
 
                   <Button
                       android:id="@+id/permission"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Autorizar Shizuku"/>
+                      android:text="Autorizar Shizuku" />
 
                   <Button
                       android:id="@+id/backup"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Salvar configuração atual"/>
+                      android:text="Salvar configuração atual" />
 
                   <Button
                       android:id="@+id/disableDynamic"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Desativar Dynamic Color / Monet"/>
+                      android:text="Desativar Dynamic Color / Monet" />
 
                   <Button
                       android:id="@+id/wallpaperDynamic"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Restaurar cores do wallpaper"/>
+                      android:text="Restaurar cores do wallpaper" />
 
                   <EditText
                       android:id="@+id/hex"
@@ -207,27 +214,22 @@ jobs:
                       android:layout_height="wrap_content"
                       android:hint="#FF6B00"
                       android:inputType="text"
-                      android:maxLines="1"/>
+                      android:maxLines="1" />
 
                   <Button
                       android:id="@+id/applyHex"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Aplicar cor HEX"/>
+                      android:text="Aplicar cor HEX" />
 
                   <Button
                       android:id="@+id/light"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Modo claro"/>
+                      android:text="Modo claro" />
 
                   <Button
                       android:id="@+id/dark"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
-                      android:text="Modo escuro"/>
-
-                  <Button
-                      android:id="@+id/autoTheme"
-                      android:layout_width="match_parent"
-                      android:layout_height="
+                      android:text="Modo
